@@ -1,0 +1,84 @@
+Escape Analysis
+
+* A program's memory
+.image gomemory.png
+
+* Some background
+When a variable allocated on the stack, it has several advantages:
+
+Faster allocation: Stack allocations are generally faster than heap allocations since they involve adjusting the stack pointer, which is a simple and efficient operation.
+Automatic deallocation: Stack-allocated variables are automatically deallocated when the function returns or when the block where they are defined exits. This eliminates the need for manual memory management and reduces the burden on the garbage collector.
+Reduced memory fragmentation: Stack allocations do not contribute to memory fragmentation since they are always deallocated in a Last-In-First-Out (LIFO) manner. This can lead to more efficient memory utilization.
+On the other hand, when variables escape to the heap due to their usage, it incurs some overhead:
+
+Slower allocation: Heap allocations involve more complex operations, such as searching for a suitable block of memory and updating data structures to track allocated objects. This can result in slower allocation compared to stack allocations.
+Manual deallocation: Variables allocated on the heap require manual deallocation by the garbage collector when they are no longer needed. This introduces additional overhead and can impact program performance.
+Increased memory usage: Heap-allocated variables consume additional memory since they persist beyond the scope of the function or block where they are defined. This can lead to increased memory usage, which may be a concern in memory-constrained environments.
+By optimizing escape analysis, you can minimize heap allocations and reduce memory overhead. This, in turn, can improve overall performance and memory utilization of your Go programs.
+
+* Example #1
+Stack working
+.code ex1.go
+
+* Example 2
+Stack with pointers
+
+* Example 3
+Returning pointers
+
+* Example 4
+Pointers in C
+.code ex.c
+
+* What is happening?
+
+* Escape analysis to the rescue
+
+* How it works
+
+* How does it affect the allocations
+- Try keeping on stack
+- If not possible be conservative
+
+* Optimizing memory allocations
+
+- `go build` flag
+- variable declaration best practices
+- pprof example with io.Reader
+
+* FAQs
+
+.link https://go.dev/doc/faq#stack_or_heap
+
+Do it matter where variable is allocated?
+- Does not matter from correctness standpoint
+- Does matter for performance
+- Anything on heap -> GC
+- GC causes latency for whole program
+
+Should I care?
+
+No if your program is already fast. Yes if you can prove that allocations are costly in your program.
+
+What is the cost of it?
+
+It is a compile time optimization.
+
+How do I enable/disable it?
+
+It's already there.
+
+There is a command which does not enable it but just logs the steps in the logic.
+
+What are the downsides?
+
+In some cases, escape analysis can actually result in worse performance or higher memory usage.
+This can happen when the analysis is overly conservative and decides to allocate variables on the heap even when
+they could be allocated on the stack.
+
+Additionally, escape analysis can sometimes lead to longer compilation times, as the compiler needs to perform
+additional analysis to determine the storage location of variables.
+
+However, these downsides are generally outweighed by the benefits of escape analysis in most cases.
+
+* Resources
