@@ -1,9 +1,17 @@
-Escape Analysis
+# Escape Analysis in Go:
+Understanding and Optimizing Memory Allocation
 
-* A program's memory
+Harsh Gupta
+Software Engineer, Money Forward Inc.
+harshgupta0240@gmail.com
+https://github.com/harsh0240
+@dhrsh24
+
+
+## A program's memory
 .image gomemory.png
 
-* Some background
+## Some background
 When a variable allocated on the stack, it has several advantages:
 
 Faster allocation: Stack allocations are generally faster than heap allocations since they involve adjusting the stack pointer, which is a simple and efficient operation.
@@ -16,39 +24,43 @@ Manual deallocation: Variables allocated on the heap require manual deallocation
 Increased memory usage: Heap-allocated variables consume additional memory since they persist beyond the scope of the function or block where they are defined. This can lead to increased memory usage, which may be a concern in memory-constrained environments.
 By optimizing escape analysis, you can minimize heap allocations and reduce memory overhead. This, in turn, can improve overall performance and memory utilization of your Go programs.
 
-* Example #1
+## Example ##1
 Stack working
-.code ex1.go
+.play ex1.go
 
-* Example 2
+## Example 2
 Stack with pointers
+.play ex2.go
 
-* Example 3
+## Example 3
 Returning pointers
+.play ex3.go
 
-* Example 4
+## But how does that happen?
+
+## Example 4
 Pointers in C
 .code ex.c
 
-* What is happening?
+## What is happening?
 
-* Escape analysis to the rescue
+## Escape analysis to the rescue
 
-* How it works
+## How it works
 
-* How does it affect the allocations
+## How does it affect the allocations
 - Try keeping on stack
 - If not possible be conservative
 
-* Optimizing memory allocations
+## Optimizing memory allocations
 
 - `go build` flag
 - variable declaration best practices
 - pprof example with io.Reader
 
-* FAQs
+## FAQs
 
-.link https://go.dev/doc/faq#stack_or_heap
+.link https://go.dev/doc/faq##stack_or_heap
 
 Do it matter where variable is allocated?
 - Does not matter from correctness standpoint
@@ -81,4 +93,4 @@ additional analysis to determine the storage location of variables.
 
 However, these downsides are generally outweighed by the benefits of escape analysis in most cases.
 
-* Resources
+## Resources
