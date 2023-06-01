@@ -1,0 +1,7 @@
+goos: darwin
+goarch: arm64
+pkg: example.com/goconf23/buffreader
+BenchmarkRead1-8        1000000000               2.078 ns/op           0 B/op          0 allocs/op
+BenchmarkRead2-8        325888257               11.05 ns/op            8 B/op          1 allocs/op
+PASS
+ok      example.com/goconf23/buffreader 7.286s

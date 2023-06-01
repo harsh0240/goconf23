@@ -1,0 +1,9 @@
+buffreader/mybuffer.go:9:7: mb does not escape
+buffreader/mybuffer.go:10:11: make([]byte, (*bytes.Buffer).Len(mb.buffer)) escapes to heap
+buffreader/reader.go:34:12: buf does not escape
+buffreader/reader.go:34:31: b does not escape
+buffreader/reader.go:43:12: buf does not escape
+buffreader/reader.go:15:5: func literal escapes to heap
+buffreader/reader.go:16:14: ... argument does not escape
+buffreader/reader.go:19:11: make([]byte, 10) does not escape
+buffreader/reader.go:22:10: &MyBuffer{...} does not escape

@@ -1,0 +1,39 @@
+(pprof) list read
+Total: 3.16GB
+ROUTINE ======================== example.com/goconf23/buffreader.(*MyBuffer).Read in /Users/harsh0240/Projects/go_playground/goconf23/buffreader/mybuffer.go
+    3.16GB     3.16GB (flat, cum) 99.91% of Total
+         .          .      5:type MyBuffer struct { // HL
+         .          .      6:   buffer *bytes.Buffer
+         .          .      7:}
+         .          .      8:
+         .          .      9:func (mb *MyBuffer) Read() ([]byte, error) { // HL
+    3.16GB     3.16GB     10:   b := make([]byte, mb.buffer.Len())
+         .          .     11:
+         .          .     12:   copy(b, mb.buffer.Bytes())
+         .          .     13:   return b, nil
+         .          .     14:}
+ROUTINE ======================== example.com/goconf23/buffreader.BenchmarkRead2 in /Users/harsh0240/Projects/go_playground/goconf23/buffreader/reader_test.go
+         0     3.16GB (flat, cum) 99.91% of Total
+         .          .     22:   mbuf := &MyBuffer{buffer: bytes.NewBufferString("gocon23")}
+         .          .     23:
+         .          .     24:   b.ResetTimer()
+         .          .     25:
+         .          .     26:   for i := 0; i < b.N; i++ {
+         .     3.16GB     27:           read2(mbuf)
+         .          .     28:   }
+         .          .     29:}
+         .          .     30:
+         .          .     31:// END OMIT
+ROUTINE ======================== example.com/goconf23/buffreader.read2 in /Users/harsh0240/Projects/go_playground/goconf23/buffreader/reader.go
+         0     3.16GB (flat, cum) 99.91% of Total
+         .          .     39:   return read
+         .          .     40:}
+         .          .     41:
+         .          .     42://go:noinline
+         .          .     43:func read2(buf *MyBuffer) []byte { // HL
+         .     3.16GB     44:   myRead, err := buf.Read()
+         .          .     45:   if err != nil {
+         .          .     46:           return nil
+         .          .     47:   }
+         .          .     48:   return myRead
+         .          .     49:}

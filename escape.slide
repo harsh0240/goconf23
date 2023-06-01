@@ -1,5 +1,5 @@
 # Escape Analysis in Go:
-Understanding and Optimizing Memory Allocation
+Understanding and Optimizing Memory Allocations
 
 Harsh Gupta
 Software Engineer, Money Forward Inc.
@@ -10,87 +10,416 @@ https://github.com/harsh0240
 
 ## A program's memory
 .image gomemory.png
+Note:
+- In Go, we have multiple goroutines and each has its own **stack**.
 
-## Some background
-When a variable allocated on the stack, it has several advantages:
+  Go では、複数のゴルーチンがあり、それぞれに独自の **スタック** があります。
 
-Faster allocation: Stack allocations are generally faster than heap allocations since they involve adjusting the stack pointer, which is a simple and efficient operation.
-Automatic deallocation: Stack-allocated variables are automatically deallocated when the function returns or when the block where they are defined exits. This eliminates the need for manual memory management and reduces the burden on the garbage collector.
-Reduced memory fragmentation: Stack allocations do not contribute to memory fragmentation since they are always deallocated in a Last-In-First-Out (LIFO) manner. This can lead to more efficient memory utilization.
-On the other hand, when variables escape to the heap due to their usage, it incurs some overhead:
+## Why allocations on the stack are preferred generally? #1
 
-Slower allocation: Heap allocations involve more complex operations, such as searching for a suitable block of memory and updating data structures to track allocated objects. This can result in slower allocation compared to stack allocations.
-Manual deallocation: Variables allocated on the heap require manual deallocation by the garbage collector when they are no longer needed. This introduces additional overhead and can impact program performance.
-Increased memory usage: Heap-allocated variables consume additional memory since they persist beyond the scope of the function or block where they are defined. This can lead to increased memory usage, which may be a concern in memory-constrained environments.
-By optimizing escape analysis, you can minimize heap allocations and reduce memory overhead. This, in turn, can improve overall performance and memory utilization of your Go programs.
+- Allocations are **faster** on the stack (although the benefit isn't that great).
 
-## Example ##1
-Stack working
-.play ex1.go
+  スタック上での割り当てが **高速**になります (ただし、それほど大きなメリットはありません)。
+: Stack allocations are generally faster than heap allocations since they involve adjusting the stack pointer, 
+: which is a simple and efficient operation.
+
+## Why allocations on the stack are preferred generally? #2
+
+- Stack-allocated variables are **automatically deallocated** when the function returns or
+  when the block where they are defined exits.
+
+  スタックに割り当てられた変数は、関数が返されるとき、または変数が定義されているブロックが終了するときに、**自動的に割り当てが解除されます**。
+
+    - On the other hand, variables allocated on the heap require **manual deallocation** or 
+      by the garbage collector when they are no longer needed.
+
+      一方、ヒープ上に割り当てられた変数は、不要になったときに **手動で割り当て解除**するか、ガベージ コレクターによって割り当てを解除する必要があります。
+
+    - And GC causes latency (for the whole program).
+
+      そして、GC は (プログラム全体で) 待ち時間を引き起こします。
+: This eliminates the need for manual memory management and reduces the burden on the garbage collector.
+
+## Why allocations on the stack are preferred generally? #3
+
+- More **efficient memory utilization** because stack allocations do not contribute to memory fragmentation.
+
+  スタック割り当てがメモリの断片化に寄与しないため、**より効率的なメモリ利用**が可能になります。
+
+## Let's look at some examples
+
+## Example 1
+Stack without pointers
+
+ポインターを使用せずにスタックする
+
+.play -numbers examples/ex1.go
 
 ## Example 2
 Stack with pointers
-.play ex2.go
+
+スタック上のポインター
+
+.play -numbers examples/ex2.go
 
 ## Example 3
 Returning pointers
-.play ex3.go
+
+ポインタを返す
+
+.play -numbers examples/ex3.go
 
 ## But how does that happen?
 
 ## Example 4
-Pointers in C
-.code ex.c
+Returning pointers in C
 
-## What is happening?
+C でのポインタの返し
 
-## Escape analysis to the rescue
+.code examples/ex.c
 
-## How it works
+## What is happening here?
 
-## How does it affect the allocations
-- Try keeping on stack
-- If not possible be conservative
+- The Go code works fine in _Example 3_ because of an optimization made by the compiler during
+  its compilation process called **Escape Analysis**.
 
-## Optimizing memory allocations
+  Go コードは、**エスケープ分析** と呼ばれるコンパイル プロセス中にコンパイラーによって行われた最適化により、_例 3_ では正常に動作します。
 
-- `go build` flag
-- variable declaration best practices
-- pprof example with io.Reader
+**Note:** 
+
+The same code in C (_Example 4_) will throw random output because there is no concept of
+escape analysis built in and it allocates on the stack.
+
+C の同じコード (_例 4_) は、エスケープ解析の概念が組み込まれておらず、スタック上に割り当てられるため、ランダムな出力をスローします。
+
+## What is it?
+
+- Escape analysis in Go is a compiler optimization technique that determines whether a variable's lifetime extends
+  beyond its allocation site.
+
+  Go のエスケープ分析は、変数の有効期間が割り当てサイトを超えて延長されるかどうかを判断するコンパイラ最適化手法です。
+
+- It helps the compiler decide whether to allocate variables on the stack or the heap, based on their usage
+  within the program.
+
+  これは、プログラム内での変数の使用状況に基づいて、コンパイラが変数をスタックに割り当てるかヒープに割り当てるかを決定するのに役立ちます。
+
+- The primary goal of escape analysis is to minimize heap allocations which results in improved performance and
+  reduced memory usage. **Happy GC! :)**
+
+  エスケープ分析の主な目的は、ヒープ割り当てを最小限に抑えることで、パフォーマンスが向上し、メモリ使用量が削減されることです。 **ハッピーGC! :)**
+
+## How does it work? #1
+
+- The algorithm ensures two invariants:
+
+  このアルゴリズムでは、次の 2 つの不変条件が保証されます:
+
+  - 1. pointers to stack objects cannot be stored in the heap
+       
+       スタック オブジェクトへのポインタはヒープに格納できません
+
+  - 2. pointers to a stack object cannot outlive that object
+       
+       スタック オブジェクトへのポインタはそのオブジェクトを超えて存続することはできません
+
+## How does it work? #2
+- This is done by constructing a directed weighted graph where vertices represent variables and 
+  edges represent assignments (with weights representing addressing/dereference counts).
+
+  これは、頂点が変数を表し、エッジが割り当てを表す有向重み付きグラフを構築することによって行われます (重みはアドレス指定/逆参照カウントを表します)。
+
+  - Some examples:
+
+    いくつかの例：
+
+    ```
+    p = &q        // -1
+    p = q         //  0
+    p = *q        //  1
+    p = **q       //  2
+    p = **&**&q   //  2
+    ```   
+
+## How does it work? #3
+- It then iteratively walks through the graph looking for the assignments that might violate the invariants and based on that
+  marks some variables as requiring heap allocation.
+
+  次に、グラフを繰り返し調べて不変条件に違反する可能性のある割り当てを探し、それに基づいて一部の変数をヒープ割り当てが必要であるとマークします。
+
+## How does it work? #4
+- If the compiler cannot definitively prove that a variable will not escape, it assumes it will escape and allocates it on the heap.
+
+  コンパイラは、変数がエスケープしないことを明確に証明できない場合、変数はエスケープすると想定し、ヒープ上に変数を割り当てます。
+
+- In addition to the algorithm, there are some additional rules as well. 
+  
+  アルゴリズムに加えて、追加のルールもいくつかあります。
+
+## Special cases for escape analysis #1
+
+- Variables with **large size** escapes 
+
+  **サイズが大きい**変数はエスケープされます
+
+```
+func main() {
+	s := make([]int64, 8*1024)   // 64KB
+
+	_ := s
+}
+```
+
+<pre>
+func main() {
+	
+  <b>// escapes to heap: too large for stack</b>
+  s := make([]int64, 8*1024 + 1)   // just above 64KB
+
+	_ := s
+}
+</pre>
+
+
+## Special cases for escape analysis #2
+- Slice variable with **non-constant capacity size** escapes
+
+  **非定数容量サイズ**のスライス変数がエスケープされる
+
+```
+func main() {
+	const c = 10
+
+	s := make([]int, c)
+	_ = s
+}
+```
+
+<pre>
+func main() {
+	var v = 10
+
+	<b>// escapes to heap: non-constant size</b>
+	s := make([]int, v)
+	_ = s
+}
+</pre>
+
+## Special cases for escape analysis #3
+- Source variable **captured by a closure** function escapes
+
+  **クロージャによってキャプチャされたソース変数**関数がエスケープします
+
+```
+func main() {
+	var x *int
+
+	func(i *int) {
+		j := 2
+		i = &j
+	}(x)
+}
+```
+
+<pre>
+func main() {
+	var x *int
+
+	func() {
+		j := 2  <b>// j escapes to heap </b>
+		<b>// escapes to heap: captured by a closure</b>
+		x = &j
+	}()
+	_ = x
+}
+</pre>
+
+## One more example
+
+## io.Reader
+1. **Read()** function signature for Go's built-in **`io.Buffer`**:
+
+   Go の組み込み **`io.Buffer`** の **Read()** 関数シグネチャ: 
+
+```
+func (b *Buffer) Read(p []byte) (n int, err error)
+```
+
+- The byte slice should be given as an argument to the **Read** function.
+
+  バイト スライスは **Read** 関数の引数として指定する必要があります。
+
+- The function returns an integer which is the number of bytes read or an error.
+
+  この関数は、読み取られたバイト数を示す整数、またはエラーを返します。
+
+
+## My custom reader
+2. **Read()** method declaration in **`MyBuffer`** struct for the experiment:
+
+   実験用の **`MyBuffer`** 構造体の **Read()** メソッド宣言:
+
+```
+func (mb *MyBuffer) Read() ([]byte, error)
+```
+- The function does not take any arguments.
+
+  この関数は引数を取りません。
+
+- The function returns with a byte slice containing the bytes read or an error.
+
+  この関数は、読み取られたバイトを含むバイト スライスまたはエラーを返します。
+
+## The struct
+
+.code -numbers buffreader/mybuffer.go
+
+## The code
+
+.code -numbers buffreader/reader.go  /START OMIT/,/END OMIT/
+
+## Compiler reporting #1
+
+**Command:**
+```
+go build -gcflags "-m -l" buffreader/*.go
+```
+
+**Output:**
+
+.code buffreader/cr1.txt
+
+## Compiler reporting #2
+
+**Command:**
+```
+go build -gcflags "-m=2 -l" buffreader/*.go
+```
+
+**Output:**
+
+.code buffreader/cr2.txt
+
+## The benchmark code
+
+.code buffreader/reader_test.go  /START OMIT/,/END OMIT/
+
+## Benchmark results
+
+**Command:**
+```
+ go test -run none -bench Read -benchtime 3s -benchmem
+```
+
+**Output:**
+
+.code buffreader/bench.txt
+
+## Better visualization with pprof
+
+.image buffreader/pprof.png 550 730
+
+## Summary and takeaways #1
+- Optimize for correctness first.
+
+  最初に正確性を最適化します。
+
+- Sharing pointers down usually stays on the stack.
+
+  共有ポインターは通常、スタック上に残ります。
+
+- Sharing pointers up usually escapes to the heap.
+
+  ポインターの共有は通常、ヒープにエスケープされます。
+
+    - Try passing variables as arguments instead of returning.
+
+      変数を返す代わりに引数として渡してみてください。
+
+## Summary and takeaways #2
+- Variables escape when addresses are captured by closures or other variables.
+
+  アドレスがクロージャまたは他の変数によってキャプチャされると、変数はエスケープされます。
+
+    - Pass variables as arguments to closures.
+
+      変数を引数としてクロージャに渡します。
+
+- Variables escape when their size is not known at compile time.
+
+  コンパイル時にサイズが不明な場合、変数はエスケープされます。
+
+    - Initializing slices with constant size (not large) is better.
+
+      スライスを一定のサイズ (大きくない) で初期化する方が良いでしょう。
+
+## Summary and takeaways #3
+- Go will only allocate on the stack when it is sure that the variable is not used after the function returns.
+
+  Go は、関数が戻った後に変数が使用されていないことが確実な場合にのみスタックに割り当てます。
+  
+- There are also additional cases (besides the examples) where variables escape to the heap.
+
+  (例以外にも) 変数がヒープにエスケープされる追加のケースもあります。
+
+- Use tooling, don't guess.
+
+  推測ではなく、ツールを使用してください。
 
 ## FAQs
 
-.link https://go.dev/doc/faq##stack_or_heap
+## Does it matter where a variable is allocated?
+**変数がどこに割り当てられるかは重要ですか?**
 
-Do it matter where variable is allocated?
-- Does not matter from correctness standpoint
-- Does matter for performance
-- Anything on heap -> GC
-- GC causes latency for whole program
+- It does not matter from a correctness standpoint, Go will take care of 
+  keeping it alive as long it is going to be used
 
-Should I care?
+  正確性の観点からは問題ではありません。使用される限り、Go がそれを存続させるよう処理します。
 
-No if your program is already fast. Yes if you can prove that allocations are costly in your program.
+- However, it does matter for performance considerations because stack allocations are faster and 
+  do not cause GC overheads.
 
-What is the cost of it?
+  ただし、スタック割り当ての方が高速で GC オーバーヘッドが発生しないため、パフォーマンスを考慮すると重要になります。
 
-It is a compile time optimization.
 
-How do I enable/disable it?
+## Should I care?
+**気にした方がいいでしょうか？**
 
-It's already there.
+- No, if your program is already fast enough.
 
-There is a command which does not enable it but just logs the steps in the logic.
+  いいえ、プログラムがすでに十分に高速である場合には可能です。
 
-What are the downsides?
+- Yes, if you can prove that memory allocations are costly in your program.
 
-In some cases, escape analysis can actually result in worse performance or higher memory usage.
-This can happen when the analysis is overly conservative and decides to allocate variables on the heap even when
-they could be allocated on the stack.
+  はい、プログラムでのメモリ割り当てにコストがかかることが証明できれば可能です。
 
-Additionally, escape analysis can sometimes lead to longer compilation times, as the compiler needs to perform
-additional analysis to determine the storage location of variables.
+## How do I enable/disable escape analysis?
+**エスケープ分析を有効/無効にするにはどうすればよいですか?**
 
-However, these downsides are generally outweighed by the benefits of escape analysis in most cases.
+- It's already there in the compilation process (and cannot be disabled).
+
+  これはコンパイル プロセスにすでに存在しています (無効にすることはできません)。
+
+- There is a command which does not enable it but just logs the optimization steps.
+
+  これを有効にせず、最適化ステップをログに記録するだけのコマンドがあります。
+
+## What is the cost of it?
+**費用はいくらですか?**
+
+- It is a compile-time optimization that can sometimes lead to longer compilation times.
+
+  これはコンパイル時の最適化であり、コンパイル時間が長くなる場合があります。
+
+- However, these downsides are generally outweighed by the benefits of escape analysis in most cases.
+
+  ただし、ほとんどの場合、これらのマイナス面はエスケープ分析のメリットによって補われます。
 
 ## Resources
+
+.link https://go.dev/doc/faq#stack_or_heap FAQ about stack and heap
+.link https://tip.golang.org/src/cmd/compile/internal/escape/escape.go Escape Analysis in Go code
+.link https://youtu.be/ZMZpH4yT7M0 Talk about escape analysis
+.link https://docs.google.com/document/d/1CxgUBPlx9iJzkz9JWkb6tIpTe5q32QDmz8l0BouG0Cw/edit# Go Escape Analysis Flaws
+.link https://www.ardanlabs.com/blog/2017/05/language-mechanics-on-stacks-and-pointers.html Series about mechanics of memory allocations and more
+.link https://slides.com/jalex-chang/go-esc Informative slides on escape analysis
