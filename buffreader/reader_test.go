@@ -9,7 +9,7 @@ import (
 
 func BenchmarkRead1(b *testing.B) { // HL
 	buf := bytes.NewBufferString("gocon23")
-	bt := make([]byte, 10)
+	bt := make([]byte, SIZE)
 
 	b.ResetTimer()
 

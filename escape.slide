@@ -317,7 +317,7 @@ go build -gcflags "-m=2 -l" buffreader/*.go
 
 ## Better visualization with pprof
 
-.image buffreader/pprof.png 550 730
+.image buffreader/pprof1.png 570 710
 
 ## Summary and takeaways #1
 - Optimize for correctness first.

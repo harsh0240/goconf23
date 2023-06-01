@@ -1,17 +1,15 @@
-buffreader/mybuffer.go:10:11: make([]byte, (*bytes.Buffer).Len(mb.buffer)) escapes to heap:
-buffreader/mybuffer.go:10:11:   flow: {heap} = &{storage for make([]byte,
-                                    (*bytes.Buffer).Len(mb.buffer))}:
-buffreader/mybuffer.go:10:11:     from make([]byte, (*bytes.Buffer).Len(mb.buffer))
-                                    (non-constant size) at buffreader/mybuffer.go:10:11
+buffreader/mybuffer.go:12:11: make([]byte, (*bytes.Buffer).Len(mb.buffer), SIZE) escapes to heap:
+buffreader/mybuffer.go:12:11:   flow: b = &{storage for make([]byte, 
+                                                (*bytes.Buffer).Len(mb.buffer), SIZE)}:
+buffreader/mybuffer.go:12:11:     from make([]byte, (*bytes.Buffer).Len(mb.buffer), SIZE) 
+                                                (spill) at buffreader/mybuffer.go:12:11
+buffreader/mybuffer.go:12:11:     from b := make([]byte, (*bytes.Buffer).Len(mb.buffer), SIZE) 
+                                                (assign) at buffreader/mybuffer.go:12:4
+buffreader/mybuffer.go:12:11:   flow: ~r0 = b:
+buffreader/mybuffer.go:12:11:     from return b, nil (return) at buffreader/mybuffer.go:15:2
 buffreader/mybuffer.go:9:7: mb does not escape
-buffreader/mybuffer.go:10:11: make([]byte, (*bytes.Buffer).Len(mb.buffer)) escapes to heap
+buffreader/mybuffer.go:12:11: make([]byte, (*bytes.Buffer).Len(mb.buffer), SIZE) escapes to heap
 buffreader/reader.go:34:12: buf does not escape
 buffreader/reader.go:34:31: b does not escape
 buffreader/reader.go:43:12: buf does not escape
-buffreader/reader.go:15:5: func literal escapes to heap:
-buffreader/reader.go:15:5:   flow: {heap} = &{storage for func literal}:
-buffreader/reader.go:15:5:     from func literal (spill) at buffreader/reader.go:15:5
-buffreader/reader.go:15:5: func literal escapes to heap
-buffreader/reader.go:16:14: ... argument does not escape
-buffreader/reader.go:19:11: make([]byte, 10) does not escape
-buffreader/reader.go:22:10: &MyBuffer{...} does not escape
+.......
