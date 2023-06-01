@@ -372,7 +372,7 @@ go build -gcflags "-m=2 -l" buffreader/*.go
 **変数がどこに割り当てられるかは重要ですか?**
 
 - It does not matter from a correctness standpoint, Go will take care of 
-  keeping it alive as long it is going to be used
+  keeping it alive as long it is going to be used.
 
   正確性の観点からは問題ではありません。使用される限り、Go がそれを存続させるよう処理します。
 
