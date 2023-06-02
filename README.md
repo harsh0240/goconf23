@@ -3,7 +3,7 @@
 Install the present tool:
 
 ```
-go get golang.org/x/tools/cmd/present
+go install golang.org/x/tools/cmd/present@latest
 ```
 
 To run the slides with present tool run:
