@@ -362,9 +362,9 @@ go build -gcflags "-m=2 -l" buffreader/*.go
 
   (例以外にも) 変数がヒープにエスケープされる追加のケースもあります。
 
-- Use tooling, don't guess.
+- Use the tooling, don't guess.
 
-  推測ではなく、ツールを使用してください。
+  推測しないで、ツールを使用してください。
 
 ## FAQs
 
